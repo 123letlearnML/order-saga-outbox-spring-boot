@@ -116,7 +116,8 @@ async function assertDead(name) {
 
 async function healthy(name) {
   try {
-    const res = await fetch(`http://localhost:${SERVICES[name].port}/actuator/health`, { signal: AbortSignal.timeout(1000) });
+    const res = await withDeadline(
+      fetch(`http://localhost:${SERVICES[name].port}/actuator/health`, { signal: AbortSignal.timeout(1000) }), 1500);
     return res.ok;
   } catch {
     return false;
@@ -133,12 +134,12 @@ async function waitHealthy(name, timeoutMs = 90000) {
 }
 
 async function api(name, path, method = 'GET', body, headers = {}) {
-  const res = await fetch(`http://localhost:${SERVICES[name].port}${path}`, {
+  const res = await withDeadline(fetch(`http://localhost:${SERVICES[name].port}${path}`, {
     method,
     headers: { 'Content-Type': 'application/json', ...headers },
     body: body ? JSON.stringify(body) : undefined,
     signal: AbortSignal.timeout(10000),
-  });
+  }), 11000);
   if (!res.ok) throw new Error(`${name} ${path} -> HTTP ${res.status}`);
   return res.json();
 }
@@ -157,17 +158,28 @@ function randomOrder() {
   };
 }
 
+/**
+ * Timeout cứng, không phụ thuộc fetch. Khi server bị kill -9 trên Windows, có kết nối keep-alive phía client vẫn ở
+ * trạng thái ESTABLISHED (không nhận được RST) và request trên đó chờ mãi; AbortSignal của fetch không cắt được.
+ * Lần chạy đầu đã treo vì ~950 kết nối "ma" như vậy.
+ */
+function withDeadline(promise, ms) {
+  let timer;
+  const deadline = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('deadline')), ms); });
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+}
+
 /** Như 1 app di động: lỗi mạng / 5xx thì gửi lại với CÙNG Idempotency-Key tới khi được. */
 async function placeOrderWithRetry(order) {
   const key = randomUUID();
   for (let attempt = 1; attempt <= 120; attempt++) {
     try {
-      const res = await fetch(`http://localhost:${SERVICES.order.port}/api/orders`, {
+      const res = await withDeadline(fetch(`http://localhost:${SERVICES.order.port}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
         body: JSON.stringify(order),
         signal: AbortSignal.timeout(5000),
-      });
+      }), 6000);
       if (res.ok) return { ok: true, attempts: attempt };
     } catch {
       // service đang chết => thử lại
