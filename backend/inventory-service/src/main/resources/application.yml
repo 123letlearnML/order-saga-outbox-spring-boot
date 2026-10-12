@@ -1,0 +1,30 @@
+server:
+  port: ${PORT:8092}
+
+spring:
+  application:
+    name: inventory-service
+  datasource:
+    url: ${DB_URL:jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3307}/saga_inventory?allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${DB_USER:devuser}
+    password: ${DB_PASSWORD:devuser_local_123}
+    hikari:
+      maximum-pool-size: 20
+      connection-timeout: 5000
+  # Bảng outbox/inbox của thư viện messaging được migrate riêng (MessagingConfig), lịch sử riêng.
+
+saga:
+  mode: ${SAGA_MODE:OUTBOX}
+  service: inventory
+  peers:
+    order: ${ORDER_URL:http://localhost:8091}
+  relay:
+    max-retry-seconds: ${SAGA_RELAY_MAX_RETRY_SECONDS:1800}
+  chaos:
+    duplicate-rate: ${SAGA_DUPLICATE_RATE:0}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

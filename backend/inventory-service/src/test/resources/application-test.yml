@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3307}/saga_inventory_test?allowPublicKeyRetrieval=true&useSSL=false}
+saga:
+  relay:
+    # Test tự gọi relayOnce() khi cần, không chạy luồng nền
+    enabled: false
+    max-attempts: 3
+    base-backoff-ms: 1
+    max-backoff-ms: 1
+  peers:
+    order: http://localhost:1
+    inventory: http://localhost:1
+    payment: http://localhost:1

@@ -1,0 +1,36 @@
+server:
+  port: ${PORT:8091}
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: ${DB_URL:jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3307}/saga_order?allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${DB_USER:devuser}
+    password: ${DB_PASSWORD:devuser_local_123}
+    hikari:
+      maximum-pool-size: 20
+      connection-timeout: 5000
+  # Bảng outbox/inbox của thư viện messaging được migrate riêng (MessagingConfig), lịch sử riêng.
+
+saga:
+  mode: ${SAGA_MODE:OUTBOX}
+  service: order
+  peers:
+    order: ${ORDER_URL:http://localhost:8091}
+    inventory: ${INVENTORY_URL:http://localhost:8092}
+    payment: ${PAYMENT_URL:http://localhost:8093}
+  relay:
+    max-retry-seconds: ${SAGA_RELAY_MAX_RETRY_SECONDS:1800}
+  chaos:
+    duplicate-rate: ${SAGA_DUPLICATE_RATE:0}
+
+notification:
+  # Nhà cung cấp email giả lập: % lần gọi bị lỗi tạm thời => relay phải retry
+  failure-percent: ${EMAIL_FAILURE_PERCENT:20}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

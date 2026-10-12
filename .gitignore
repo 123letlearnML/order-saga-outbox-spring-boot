@@ -1,0 +1,25 @@
+# Java / Maven
+target/
+.mvn/wrapper/maven-wrapper.jar
+
+# Node
+node_modules/
+dist/
+
+# Kết quả load test (JSON thô; bảng tổng hợp nằm trong KNOWLEDGE.md)
+load-test/results/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Cấu hình local chứa bí mật
+*.local
+.env
+application-local.yml
+
+# Kết quả + log chaos test (bảng tổng hợp nằm trong README)
+chaos/results/
+chaos/logs/
